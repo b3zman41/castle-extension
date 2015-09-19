@@ -11,7 +11,7 @@ $(document).ready(function () {
             if(request.data.responseJSON) {
                 var data = request.data.responseJSON;
 
-                alert((data.agreements || 0) + " people got the answer : " + data.answer);
+                alert("The highest rated answer is : " + data.answer);
             }
         }
 
@@ -28,7 +28,6 @@ function rebind() {
 
         $('#acceptMCInput').unbind('click');
         $('#acceptMCInput').click(function (event) {
-            console.log("Accept");
             runQuestion();
         })
     }, 1000);
