@@ -1,4 +1,4 @@
-var host = "http://castle.dev";
+var host = "http://castle.bezcode.com";
 
 console.log("RUNNMING");
 
@@ -28,6 +28,11 @@ function rebind() {
 
         $('#acceptMCInput').unbind('click');
         $('#acceptMCInput').click(function (event) {
+            runQuestion();
+        });
+
+        $('[id^="index"] a').unbind('click');
+        $('[id^="index"] a').click(function (event) {
             runQuestion();
         })
     }, 1000);
