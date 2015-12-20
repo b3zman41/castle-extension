@@ -9,10 +9,16 @@ var gettingAnswers = false;
 
 var answerQueue = [];
 
+var noop = function () {
+
+};
+
 $(document).ready(function () {
     var firstQuestion = {};
     while(!firstQuestion.hasOwnProperty("number")) {
         firstQuestion = getCurrentData();
+
+        logQuestion(firstQuestion);
     }
 
     numberOfQuestions = $(commonQuestionNumberClass).length;
@@ -53,6 +59,27 @@ function setupButtons() {
     autoAnswerButton.onclick = autoAnswerAllQuestions;
 
     $('#ctl00_headerButtonsUpdatePanel').prepend(logButton).prepend(autoAnswerButton);
+
+    rebind();
+}
+
+function rebind() {
+    console.info("Rebinding Buttons");
+    $('#acceptMCInput').on("click", function () {
+        questionChangedFrom(getCurrentData().number, noop);
+    });
+
+    $("#ctl00_NextButton").on("click", function () {
+        questionChangedFrom(getCurrentData().number, noop);
+    });
+
+    $(".navbtn.rs_skip").on("click", function () {
+        questionChangedFrom(getCurrentData().number, noop);
+    });
+
+    $(commonQuestionNumberClass).on("click", function () {
+        questionChangedFrom(getCurrentData().number, noop);
+    });
 }
 
 function getCurrentData() {
@@ -214,17 +241,15 @@ function questionChangedFrom(currentNumber, callback) {
 
         if (thisNumber !== currentNumber) {
             window.clearInterval(interval);
+            questionLoaded(getCurrentData());
             callback(getCurrentData());
         }
     }, 200);
 }
 
 function questionLoaded(data) {
-    if (loggingMode) {
-        logQuestion(data);
-    } else if($(commonQuestionNumberClass).length == numberOfQuestinonsLogged) {
-        doneLoggingQuestions();
-    }
+    rebind();
+    logQuestion(data);
 }
 
 function doneLoggingQuestions() {
