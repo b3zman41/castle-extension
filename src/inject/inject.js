@@ -244,7 +244,7 @@ function questionChangedFrom(currentNumber, callback) {
             questionLoaded(getCurrentData());
             callback(getCurrentData());
         }
-    }, 200);
+    }, 100);
 }
 
 function questionLoaded(data) {
