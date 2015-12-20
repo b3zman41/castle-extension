@@ -1,6 +1,6 @@
 {
   "name": "Castle Crowd",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "manifest_version": 2,
   "description": "Crowd sourced Castle Learning answers",
   "icons": {
@@ -21,7 +21,8 @@
   "content_scripts": [
     {
       "matches": [
-        "https://www.castlelearning.com/review/student/questionajax.aspx"
+        "https://www.castlelearning.com/review/student/questionajax.aspx",
+        "https://www.castlelearning.com/Review/student/questionajax.aspx"
       ],
       "js": [
         "js/jquery/jquery.min.js",
