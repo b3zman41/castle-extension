@@ -60,7 +60,13 @@ function setupButtons() {
 
     $('#ctl00_headerButtonsUpdatePanel').prepend(logButton).prepend(autoAnswerButton);
 
-    rebind();
+    $(commonQuestionNumberClass).on("click", function () {
+        questionChangedFrom(getCurrentData().number, noop);
+    });
+
+    $("#ctl00_NextButton").on("click", function () {
+        questionChangedFrom(getCurrentData().number, noop);
+    });
 }
 
 function rebind() {
@@ -69,15 +75,7 @@ function rebind() {
         questionChangedFrom(getCurrentData().number, noop);
     });
 
-    $("#ctl00_NextButton").on("click", function () {
-        questionChangedFrom(getCurrentData().number, noop);
-    });
-
     $(".navbtn.rs_skip").on("click", function () {
-        questionChangedFrom(getCurrentData().number, noop);
-    });
-
-    $(commonQuestionNumberClass).on("click", function () {
         questionChangedFrom(getCurrentData().number, noop);
     });
 }
@@ -156,6 +154,7 @@ function autoAnswerAllQuestions() {
     gettingAnswers = true;
 
     setTimeout(function () {
+        console.info("Starting auto answer all");
         getAnswerAndNext(getCurrentData());
     }, 1000);
 }
