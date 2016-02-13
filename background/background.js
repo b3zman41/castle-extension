@@ -1,20 +1,13 @@
 console.log("Runmning");
 
-chrome.runtime.onMessage.addListener(function (request, sender, callback) {
+chrome.runtime.onMessage.addListener(function (message, sender, callback) {
 
-    if(!request.url) return;
+    if (message.event && message.event === "request") {
+        message.request.options.complete =  function (response) {
+            callback(response.responseJSON);
+        };
+        $.ajax(message.request.url, message.request.options);
+    }
 
-    request.options.complete = function (data) {
-        chrome.tabs.query({active: true, currentWindow: true}, function (tabs) {
-            var tabID = tabs[0].id;
-
-            chrome.tabs.sendMessage(tabID, {
-                event: "bytext",
-                data: data
-            })
-        });
-    };
-
-    $.ajax(request.url, request.options);
-
+    return true;
 });

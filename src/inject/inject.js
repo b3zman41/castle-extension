@@ -1,258 +1,131 @@
-var host = "http://castle.bezcode.com";
-var commonQuestionNumberClass = "[id^='index']";
-var numberOfQuestions = 0;
+console.log("Running Castle Crowd");
+var host = "http://castle.dev:8000";
+//var host = "http://castle.bezcode.com";
 
-var autoAnswerMode = false;
-var loggingMode = false;
-var answeringFromQueue = false;
-var gettingAnswers = false;
+var questionURL = "https://www.castlelearning.com/Review/CLO/Student/Assignment/Question";
 
-var answerQueue = [];
+var assignmentID = 0;
+var currentQuestion = {};
 
-var noop = function () {
+var noop = function() {};
 
-};
-
-$(document).ready(function () {
-    var firstQuestion = {};
-    while(!firstQuestion.hasOwnProperty("number")) {
-        firstQuestion = getCurrentData();
-
-        logQuestion(firstQuestion);
-    }
-
-    numberOfQuestions = $(commonQuestionNumberClass).length;
-
-    chrome.runtime.onMessage.addListener(function (request, sender, callback) {
-
-        if(request.event === "bytext") {
-            if(request.data.responseJSON) {
-                var data = request.data.responseJSON;
-
-                if (autoAnswerMode) {
-                    answerQueue.push(data);
-
-                    if (!gettingAnswers) {
-                        autoAnswerFromQueue();
-                    }
-                }
-            }
-        }
-
-    });
-
-    setupButtons();
-
-});
-
-function setupButtons() {
-    var logButton = document.createElement("a");
-    logButton.className = "navbtn";
-    logButton.innerHTML = "Log All Questions";
-
-    logButton.onclick = logAllQuestionsToServer;
-
-    var autoAnswerButton = document.createElement("a");
-    autoAnswerButton.className = "navbtn";
-    autoAnswerButton.innerHTML = "Auto Answer All";
-
-    autoAnswerButton.onclick = autoAnswerAllQuestions;
-
-    $('#ctl00_headerButtonsUpdatePanel').prepend(logButton).prepend(autoAnswerButton);
-
-    $(commonQuestionNumberClass).on("click", function () {
-        questionChangedFrom(getCurrentData().number, noop);
-    });
-
-    $("#ctl00_NextButton").on("click", function () {
-        questionChangedFrom(getCurrentData().number, noop);
-    });
-}
-
-function rebind() {
-    console.info("Rebinding Buttons");
-    $('#acceptMCInput').on("click", function () {
-        questionChangedFrom(getCurrentData().number, noop);
-    });
-
-    $(".navbtn.rs_skip").on("click", function () {
-        questionChangedFrom(getCurrentData().number, noop);
-    });
-}
-
-function getCurrentData() {
-    var answerText = $('#answertext').html();
-    var question = $('#questionDiv').html();
-
-    var number = 0;
-
-    $('div.sectionbar').each(function () {
-        if ($(this).text().indexOf('Question') > -1) {
-            number = $(this).text().split(' ')[1];
-            number = parseInt(number);
-        }
-    });
-
-    var returnObj = {
-        question: question,
-        number: number
-    };
-
-    if (answerText) {
-        var answer = parseInt(answerText.substr(0, 1));
-
-        if (!isNaN(answer)) {
-            returnObj.answer = answer;
-        }
-    }
-
-    return returnObj;
-}
-
-function nextQuestion(callback) {
-    var currentQuestion = getCurrentData();
-
-    $("#ctl00_NextButton").click();
-
-    questionChangedFrom(currentQuestion.number, callback);
-}
-
-function goToQuestion(number, callback) {
-    var currentQuestion = getCurrentData();
-
-    location.href = "Javascript:OnGoto(" + number + ")";
-
-    questionChangedFrom(currentQuestion.number, callback);
-}
-
-function logQuestion(data) {
-    console.info("Logging Question: ", data.number, data.answer);
-
+function sendRequest(request, callback) {
     chrome.runtime.sendMessage({
-        url: host + "/question/add",
+        event: "request",
+        request: request
+    }, callback);
+}
+
+function getQuestionData(number, callback) {
+    sendRequest({
+        url: questionURL,
 
         options: {
             method: "POST",
-
-            data: data
+            data: {
+                quesIndex: number,
+                assignmentID: assignmentID,
+                html5Audio: true
+            }
         }
-    });
+    }, callback);
 }
 
-function logAllQuestionsToServer() {
-    loggingMode = true;
-    location.href = "Javascript:OnGoto(1)";
-
-    setTimeout(function () {
-        logAndNext(getCurrentData());
-    }, 1000);
-}
-
-function autoAnswerAllQuestions() {
-    autoAnswerMode = true;
-    location.href = "Javascript:OnGoto(1)";
-    gettingAnswers = true;
-
-    setTimeout(function () {
-        console.info("Starting auto answer all");
-        getAnswerAndNext(getCurrentData());
-    }, 1000);
-}
-
-function logAndNext(data) {
-    if (data.number < numberOfQuestions) {
-        logQuestion(data);
-        nextQuestion(logAndNext);
-    } else {
-        logQuestion(data);
-        doneLoggingQuestions();
-    }
-}
-
-function getAnswerAndNext(data) {
-    if (data.number < numberOfQuestions) {
-        chrome.runtime.sendMessage({
-            url: host + "/question/bytext",
-
-            options: {
-                method: "POST",
-
-                data: data
-            }
-        });
-
-        nextQuestion(getAnswerAndNext);
-    } else {
-        chrome.runtime.sendMessage({
-            url: host + "/question/bytext",
-
-            options: {
-                method: "POST",
-
-                data: data
-            }
-        });
-
-        gettingAnswers = false;
-        autoAnswerFromQueue();
-    }
-}
-
-function autoAnswerAndNext(question) {
-    if (answerQueue.length > 0) {
-        $('#mcAnswerList_' + question.answer).click();
-        $('#acceptMCInput').click();
-
-        console.info("Answering number ", question.number, question.answer);
-
-        setTimeout(function () {
-            var next = answerQueue.shift();
-
-            goToQuestion(next.number, function (data) {
-                autoAnswerAndNext(next);
-            });
-        }, 200);
-    } else {
-        autoAnswerMode = false;
-        answeringFromQueue = false;
-    }
-}
-
-function autoAnswerFromQueue() {
-    console.log(answerQueue);
-    if (!answeringFromQueue) {
-        answeringFromQueue = true;
-        var answer = answerQueue.shift();
-
-        goToQuestion(answer.number, function () {
-            autoAnswerAndNext(answer);
-        })
-    }
-}
-// EVENTS ----------------------------------------------------
-
-
-function questionChangedFrom(currentNumber, callback) {
-    console.info("Question changed from", currentNumber);
-
+function questionChangedFrom(oldID, callback) {
     var interval = setInterval(function () {
-        var thisNumber = getCurrentData().number;
+        var thisID = parseInt(retrieveWindowVariable("Castle.Student.Questions.questionId"));
 
-        if (thisNumber !== currentNumber) {
+        if (thisID !== oldID) {
             window.clearInterval(interval);
-            questionLoaded(getCurrentData());
-            callback(getCurrentData());
+
+            getQuestionData(getCurrentNumber(), function (data) {
+                questionLoaded(data);
+
+                if(callback) callback(data);
+            });
         }
     }, 100);
 }
 
+function getCurrentNumber() {
+    return $("#qNum").val();
+}
+
+function goToQuestion(question, callback) {
+    var oldID = currentQuestion.QuestionId;
+
+    executeGlobalFunction("Castle.Student.Questions.getQuestion(" + question + ")");
+    questionChangedFrom(oldID, callback);
+}
+
+function executeGlobalFunction(func) {
+    window.location.href = "JavaScript:" + func;
+}
+
+function imSoTriggeredRightNow(event) {
+    questionChangedFrom(currentQuestion.QuestionId);
+}
+
+function questionSubmitted(event) {
+    getQuestionData(getCurrentNumber(), questionLoaded);
+}
+
+function setupEventListeners() {
+    $("#nextQuestion-bott, #prevQuestion-bott, #nextQuestion, #prevQuestion, #submitBtn").click(imSoTriggeredRightNow);
+    $("#qNum").change(questionSubmitted);
+}
+
+function init() {
+    assignmentID = getParameterByName('assignmentID');
+
+    getQuestionData(getCurrentNumber(), function (data) {
+        questionLoaded(data);
+        setupEventListeners();
+    });
+}
+
 function questionLoaded(data) {
-    rebind();
-    logQuestion(data);
+    console.info("Loaded Question", data.QuestionId);
+    currentQuestion = data;
 }
 
-function doneLoggingQuestions() {
-    loggingMode = false;
-
-    console.log("Done Logging Questions");
+function getParameterByName(name, url) {
+    if (!url) url = window.location.href;
+    name = name.replace(/[\[\]]/g, "\\$&");
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+        results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
 }
+
+function retrieveWindowVariable(variable) {
+    return retrieveWindowVariables([variable])[variable];
+}
+
+function retrieveWindowVariables(variables) {
+    var ret = {};
+
+    var scriptContent = "";
+    for (var i = 0; i < variables.length; i++) {
+        var currVariable = variables[i];
+        scriptContent += "if (typeof " + currVariable + " !== 'undefined') $('body').attr('tmp_" + currVariable + "', " + currVariable + ");\n"
+    }
+
+    var script = document.createElement('script');
+    script.id = 'tmpScript';
+    script.appendChild(document.createTextNode(scriptContent));
+    (document.body || document.head || document.documentElement).appendChild(script);
+
+    for (var i = 0; i < variables.length; i++) {
+        var currVariable = variables[i];
+        ret[currVariable] = $("body").attr("tmp_" + currVariable);
+        $("body").removeAttr("tmp_" + currVariable);
+    }
+
+    $("#tmpScript").remove();
+
+    return ret;
+}
+
+$(document).ready(init);
