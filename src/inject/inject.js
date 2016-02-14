@@ -1,10 +1,11 @@
 console.log("Running Castle Crowd");
-var host = "http://castle.dev:8000";
+var host = "http://castle.dev";
 //var host = "http://castle.bezcode.com";
 
 var questionURL = "https://www.castlelearning.com/Review/CLO/Student/Assignment/Question";
 
 var assignmentID = 0;
+var questionCount = 0;
 var currentQuestion = {};
 
 var noop = function() {};
@@ -14,6 +15,16 @@ function sendRequest(request, callback) {
         event: "request",
         request: request
     }, callback);
+}
+
+function getAnswerFromServer(id, callback) {
+    sendRequest({
+        url: host + "/question/" + id,
+
+        options: {
+            method: "GET"
+        }
+    }, callback)
 }
 
 function getQuestionData(number, callback) {
@@ -55,7 +66,9 @@ function goToQuestion(question, callback) {
     var oldID = currentQuestion.QuestionId;
 
     executeGlobalFunction("Castle.Student.Questions.getQuestion(" + question + ")");
-    questionChangedFrom(oldID, callback);
+    questionChangedFrom(oldID, function (data) {
+        callback(data);
+    });
 }
 
 function executeGlobalFunction(func) {
@@ -67,26 +80,110 @@ function imSoTriggeredRightNow(event) {
 }
 
 function questionSubmitted(event) {
-    getQuestionData(getCurrentNumber(), questionLoaded);
+    promiseQuestionWillBeDone(function () {
+        //Setup Event Listener for that dumb fucking next button which appears out of nowhere
+        $('#nextQuestion2').off('click').click(imSoTriggeredRightNow);
+        getQuestionData(getCurrentNumber(), questionLoaded);
+    });
 }
 
 function setupEventListeners() {
-    $("#nextQuestion-bott, #prevQuestion-bott, #nextQuestion, #prevQuestion, #submitBtn").click(imSoTriggeredRightNow);
-    $("#qNum").change(questionSubmitted);
+    $("#nextQuestion-bott, #prevQuestion-bott, #nextQuestion, #prevQuestion").click(imSoTriggeredRightNow);
+    $("#qNum").change(imSoTriggeredRightNow);
+
+    $("#submitBtn").click(questionSubmitted);
 }
 
 function init() {
     assignmentID = getParameterByName('assignmentID');
+    questionCount = parseInt(retrieveWindowVariable('Castle.Student.Questions.count'));
 
     getQuestionData(getCurrentNumber(), function (data) {
         questionLoaded(data);
         setupEventListeners();
+
+        autoAnswerAll();
     });
 }
 
 function questionLoaded(data) {
     console.info("Loaded Question", data.QuestionId);
     currentQuestion = data;
+
+    if(isQuestionDone(data)) {
+        //Fuck this trigger man
+        console.log("Im triggered rightn ow");
+
+        $('#nextQuestion2').off('click').click(imSoTriggeredRightNow);
+
+        var answer = parseInt($("input[name=answers]:checked").val());
+
+        sendRequest({
+            url: host + "/question/add",
+
+            options: {
+                method: "POST",
+                data: {
+                    question: data.QuestionId,
+                    answer: answer
+                }
+            }
+        }, noop)
+    }
+}
+
+function isStatusDone(Status) {
+    return Status === "STATUS_CORRECT" || Status === "STATUS_CORRECTONRETRY" || Status === "STATUS_INCORRECTONRETRY" || Status === "STATUS_INCORRECT";
+}
+
+function isQuestionDone(q) {
+    return isStatusDone(q.Status);
+}
+
+function promiseQuestionWillBeDone(callback) {
+    var answer = parseInt($("input[name=answers]:checked").val());
+
+    if(answer) {
+        console.log("There was an answer");
+        var interval = setInterval(function () {
+            var status = retrieveWindowVariable("Castle.Student.Questions.qStatus");
+            console.log(status);
+            if (isStatusDone(status)) {
+                window.clearInterval(interval);
+
+                callback();
+            }
+        }, 20);
+    }
+}
+
+function answerQuestionWithAnswer(number, answer) {
+    sendRequest({
+        url: "https://www.castlelearning.com/Review/CLO/Student/Assignment/SubmitMC",
+
+        options: {
+            method: "POST",
+            data: {answer: answer, quesIndex: number, assignmentID: assignmentID, html5Audio: true}
+        }
+    }, noop);
+}
+
+function autoAnswerAll() {
+    autoAnswerAndNext(1);
+}
+
+function autoAnswerAndNext(number) {
+    getQuestionData(number, function (data) {
+        getAnswerFromServer(data.QuestionId, function (answer) {
+            if (answer) {
+                answerQuestionWithAnswer(number, answer.answer);
+            }
+
+            if (number < questionCount) {
+                autoAnswerAndNext(number + 1);
+            }
+        });
+    })
 }
 
 function getParameterByName(name, url) {

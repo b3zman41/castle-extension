@@ -1,6 +1,6 @@
 {
   "name": "Castle Crowd",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "manifest_version": 2,
   "description": "Crowd sourced Castle Learning answers",
   "icons": {
@@ -20,14 +20,17 @@
   "content_scripts": [
     {
       "matches": [
-        "https://www.castlelearning.com/review/student/questionajax.aspx",
-        "https://www.castlelearning.com/Review/student/questionajax.aspx"
+        "*://*.castlelearning.com/Review/CLO/Student/Assignment/Questions*"
       ],
       "js": [
         "js/jquery/jquery.min.js",
         "src/inject/inject.js"
       ]
     }
+  ],
+
+  "web_accessible_resources" : [
+    "src/inject/inject.js"
   ],
 
   "background": {

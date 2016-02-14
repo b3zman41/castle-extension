@@ -4,7 +4,9 @@ chrome.runtime.onMessage.addListener(function (message, sender, callback) {
 
     if (message.event && message.event === "request") {
         message.request.options.complete =  function (response) {
-            callback(response.responseJSON);
+            console.log(response);
+
+            callback(response.responseJSON, response);
         };
         $.ajax(message.request.url, message.request.options);
     }
