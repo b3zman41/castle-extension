@@ -1,6 +1,6 @@
 console.log("Running Castle Crowd");
-var host = "http://castle.dev";
-//var host = "http://castle.bezcode.com";
+//var host = "http://castle.dev";
+var host = "http://castle.bezcode.com";
 
 var questionURL = "https://www.castlelearning.com/Review/CLO/Student/Assignment/Question";
 
