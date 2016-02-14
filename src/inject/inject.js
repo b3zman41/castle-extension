@@ -94,6 +94,20 @@ function setupEventListeners() {
     $("#submitBtn").click(questionSubmitted);
 }
 
+function setupButtons() {
+    var button = document.createElement('a');
+    button.style.cursor = "pointer";
+    button.className = "ui-btn ui-corner-all ui-last-child";
+    button.innerHTML = "<p>Auto Answer All</p>";
+
+    $('#scoring').last().append(button);
+    $(button).click(autoAnswerAll);
+}
+
+function setupProgressBar() {
+    $('.full-page-div').hide();
+}
+
 function init() {
     assignmentID = getParameterByName('assignmentID');
     questionCount = parseInt(retrieveWindowVariable('Castle.Student.Questions.count'));
@@ -101,8 +115,12 @@ function init() {
     getQuestionData(getCurrentNumber(), function (data) {
         questionLoaded(data);
         setupEventListeners();
+        setupButtons();
+    });
 
-        autoAnswerAll();
+    $.get(chrome.extension.getURL('/src/inject/inject.html'), function(data) {
+        $(data).appendTo('body');
+        setupProgressBar();
     });
 }
 
@@ -169,19 +187,26 @@ function answerQuestionWithAnswer(number, answer) {
 }
 
 function autoAnswerAll() {
-    autoAnswerAndNext(1);
+    $('.full-page-div').show();
+
+    autoAnswerAndNext(1, function () {
+        $('.full-page-div').hide();
+    });
 }
 
-function autoAnswerAndNext(number) {
+function autoAnswerAndNext(number, done) {
     getQuestionData(number, function (data) {
         getAnswerFromServer(data.QuestionId, function (answer) {
+            var percentage = parseInt((parseFloat(number) / questionCount * 100)) + '%';
+            $('.loader').width(percentage).text(percentage);
+
             if (answer) {
                 answerQuestionWithAnswer(number, answer.answer);
             }
 
             if (number < questionCount) {
-                autoAnswerAndNext(number + 1);
-            }
+                autoAnswerAndNext(number + 1, done);
+            } else done();
         });
     })
 }

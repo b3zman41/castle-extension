@@ -25,12 +25,15 @@
       "js": [
         "js/jquery/jquery.min.js",
         "src/inject/inject.js"
+      ],
+      "css": [
+        "src/inject/inject.css"
       ]
     }
   ],
 
   "web_accessible_resources" : [
-    "src/inject/inject.js"
+    "src/inject/inject.html"
   ],
 
   "background": {
